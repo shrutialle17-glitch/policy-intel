@@ -14,9 +14,13 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      await login(values.email, values.password);
+      const loggedInUser = await login(values.email, values.password);
       message.success('Successfully logged in!');
-      navigate('/app');
+      if (loggedInUser.role === 'ADMIN') {
+        navigate('/app/admin');
+      } else {
+        navigate('/app');
+      }
     } catch (error) {
       message.error('Login failed. Please try again.');
     } finally {
@@ -27,9 +31,13 @@ const Login = () => {
   const onDemoLogin = async () => {
     setLoading(true);
     try {
-      await login('demo@policyintel.gov', 'demo123');
+      const loggedInUser = await login('demo@policyintel.gov', 'demo123');
       message.success('Demo login successful!');
-      navigate('/app');
+      if (loggedInUser.role === 'ADMIN') {
+        navigate('/app/admin');
+      } else {
+        navigate('/app');
+      }
     } catch (error) {
       message.error('Demo login failed.');
     } finally {

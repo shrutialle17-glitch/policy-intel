@@ -1,13 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prismaClient');
 
 const app = express();
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter });
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -25,92 +21,59 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Auth routes
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-dev';
-
-// Register User
-app.post('/api/auth/register', async (req, res) => {
+// Public stats route
+app.get('/api/public/stats', async (req, res) => {
   try {
-    const { email, password, name, organization, role } = req.body;
-    
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ status: 'error', message: 'User already exists' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        organization,
-        role: role === 'ANALYST' ? 'ANALYST' : 'USER',
-      }
-    });
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(201).json({
-      status: 'success',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        organization: user.organization,
-        role: user.role
-      }
-    });
+    const [activePolicies, indexedChunks, complianceChecks] = await Promise.all([
+      prisma.policy.count({ where: { status: 'READY' } }),
+      prisma.policyChunk.count(),
+      prisma.complianceAnalysis.count(),
+    ]);
+    res.json({ data: { activePolicies, indexedChunks, complianceChecks } });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ status: 'error', message: 'Server error during registration' });
+    console.error('Stats error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch stats' });
   }
 });
 
-// Login User
-app.post('/api/auth/login', async (req, res) => {
+// Mount modular routes
+const authRoutes = require('./routes/auth.routes');
+const policyRoutes = require('./routes/policyRoutes');
+const tenderRoutes = require('./routes/tenderRoutes');
+const policyAiRoutes = require('./routes/policyAiRoutes');
+const complianceRoutes = require('./routes/complianceRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api/policies', policyRoutes);
+app.use('/api/tenders', tenderRoutes);
+app.use('/api/policy-ai', policyAiRoutes);
+app.use('/api/compliance-analysis', complianceRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Debug RAG route (ADMIN only)
+const verifyToken = require('./middleware/auth');
+const authorizeRole = require('./middleware/role');
+const { generateEmbedding } = require('./services/embeddingService');
+const { retrieveRelevantChunks } = require('./services/vectorRetrievalService');
+
+app.post('/api/debug/rag-test', verifyToken, authorizeRole('ADMIN'), async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      status: 'success',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        organization: user.organization,
-        role: user.role
-      }
+    const { question, source = 'policy', tenderId } = req.body;
+    const queryEmbedding = await generateEmbedding(question);
+    const chunks = await retrieveRelevantChunks({ 
+      queryEmbedding, 
+      source, 
+      tenderId, 
+      userId: req.user.id,
+      topK: 8,
+      minSimilarity: 0.7
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ status: 'error', message: 'Server error during login' });
+    res.json({ data: { chunks } });
+  } catch (err) {
+    console.error('Debug RAG Test Error:', err);
+    res.status(500).json({ error: { message: err.message } });
   }
 });
 

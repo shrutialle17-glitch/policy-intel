@@ -1,14 +1,16 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { Layout, Button, Space, Typography } from 'antd';
-import { Landmark } from 'lucide-react';
+import { Landmark, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 
 const PublicLayout = () => {
   const { user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   return (
@@ -32,15 +34,14 @@ const PublicLayout = () => {
           </div>
         </Link>
         
-        <Space size="large" style={{ display: 'none' }} className="desktop-nav">
-          {/* We will handle responsive hiding via CSS later if needed */}
-          <Link to="/" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Home</Link>
-          <Link to="/#features" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Features</Link>
-          <Link to="/#how-it-works" style={{ color: 'var(--text-main)', fontWeight: 500 }}>How It Works</Link>
-          <Link to="/#about" style={{ color: 'var(--text-main)', fontWeight: 500 }}>About</Link>
+        <Space size="large" className="desktop-nav">
+          <Link to="/app/policies" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Policy Library</Link>
+          <Link to="/app/ask-policy" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Ask AI</Link>
+          <Link to="/app/compliance" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Compliance</Link>
         </Space>
 
         <Space>
+          <Button type="text" icon={isDark ? <Sun size={18} /> : <Moon size={18} />} onClick={toggleTheme} style={{ color: 'var(--text-main)' }} />
           {user ? (
             <Button type="primary" onClick={() => navigate('/app')}>Go to Dashboard</Button>
           ) : (
@@ -57,7 +58,7 @@ const PublicLayout = () => {
       </Content>
       
       <Footer style={{ textAlign: 'center', backgroundColor: 'var(--primary)', color: 'white', padding: '48px 24px' }}>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             <Landmark size={24} color="white" />
             <span style={{ fontSize: '18px', fontWeight: 700 }}>PolicyIntel</span>
@@ -67,14 +68,14 @@ const PublicLayout = () => {
           <Space size="large" wrap justify="center" style={{ marginTop: '24px' }}>
             <Link to="/app/policies" style={{ color: 'white' }}>Policy Library</Link>
             <Link to="/app/ask-policy" style={{ color: 'white' }}>Ask Policy AI</Link>
-            <Link to="/app/compliance" style={{ color: 'white' }}>Compliance</Link>
-            <Link to="/#about" style={{ color: 'white' }}>About</Link>
-            <Link to="/#contact" style={{ color: 'white' }}>Contact</Link>
+            <Link to="/app/compliance" style={{ color: 'white' }}>Compliance Checker</Link>
+            <Link to="#" style={{ color: 'white' }}>Security</Link>
+            <Link to="#" style={{ color: 'white' }}>Documentation</Link>
           </Space>
           
           <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '24px', paddingTop: '24px' }}>
-            <Text style={{ color: 'var(--accent)', fontSize: '12px' }}>
-              AI-assisted insights. Always verify against official policy sources.
+            <Text style={{ color: 'var(--accent)', fontSize: '13px' }}>
+              Policy-grounded AI. Every compliance finding is traceable to its source.
             </Text>
           </div>
         </Space>

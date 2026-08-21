@@ -4,11 +4,13 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider   = "postgresql"
+  extensions = [vector]
 }
 
 enum Role {
@@ -17,13 +19,166 @@ enum Role {
   ADMIN
 }
 
+enum ProcessingStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum PolicyStatus {
+  DRAFT
+  PROCESSING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  MISSING
+  NEEDS_REVIEW
+}
+
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  password     String
-  name         String
-  organization String?
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String            @id @default(uuid())
+  email            String            @unique
+  password         String
+  name             String
+  organization     String?
+  role             Role              @default(USER)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  tenders          TenderDocument[]
+  uploadedPolicies Policy[]
+  chatHistories    ChatHistory[]
+}
+
+model Policy {
+  id               String            @id @default(uuid())
+  title            String
+  description      String?
+  category         String
+  issuingAuthority String?
+  documentType     String?
+  publicationDate  DateTime?
+  effectiveDate    DateTime?
+  version          String?
+  fileUrl          String
+  fileSizeBytes    Int?
+  status           PolicyStatus      @default(DRAFT)
+  errorMessage     String?
+  uploadedById     String
+  uploadedBy       User              @relation(fields: [uploadedById], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  chunks           PolicyChunk[]
+
+  @@index([category])
+  @@index([issuingAuthority])
+  @@index([documentType])
+  @@index([status])
+}
+
+model PolicyChunk {
+  id               String            @id @default(uuid())
+  policyId         String
+  policy           Policy            @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  content          String
+  pageNumber       Int
+  chunkIndex       Int
+  embedding        Unsupported("vector(768)")?
+  createdAt        DateTime          @default(now())
+}
+
+model TenderDocument {
+  id               String            @id @default(uuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  originalFileName String?
+  fileUrl          String
+  fileSizeBytes    Int?
+  status           ProcessingStatus  @default(UPLOADED)
+  processingError  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  chunks           TenderChunk[]
+  complianceAnalyses ComplianceAnalysis[]
+}
+
+model TenderChunk {
+  id               String            @id @default(uuid())
+  tenderId         String
+  tender           TenderDocument    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  content          String
+  pageNumber       Int
+  chunkIndex       Int
+  embedding        Unsupported("vector(768)")?
+  createdAt        DateTime          @default(now())
+}
+
+enum AnalysisStatus {
+  PENDING
+  ANALYZING
+  COMPLETED
+  FAILED
+}
+
+enum ConfidenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model ComplianceAnalysis {
+  id                    String            @id @default(uuid())
+  tenderId              String
+  tender                TenderDocument    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  status                AnalysisStatus    @default(PENDING)
+  policyScopeCategories String            // JSON string array of categories
+  overallScore          Int?
+  compliantCount        Int               @default(0)
+  missingCount          Int               @default(0)
+  needsReviewCount      Int               @default(0)
+  createdAt             DateTime          @default(now())
+  completedAt           DateTime?
+  findings              ComplianceFinding[]
+}
+
+model ComplianceFinding {
+  id                 String             @id @default(uuid())
+  analysisId         String
+  analysis           ComplianceAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  
+  // Stage A: Requirement
+  requirementText    String
+  requirementCategory String?
+  sourcePolicyId     String
+  sourcePolicyTitle  String
+  policyPageNumber   Int
+  policyExcerpt      String
+  
+  // Stage B: Evidence
+  tenderEvidenceText String?
+  tenderPageNumber   Int?
+  
+  // Evaluation
+  status             ComplianceStatus
+  explanation        String
+  recommendation     String?
+  confidence         ConfidenceLevel
+  confidenceScore    Float
+  createdAt          DateTime           @default(now())
+}
+
+model ChatHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  citations Json?
+  grounded  Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

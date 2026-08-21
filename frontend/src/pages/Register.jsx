@@ -19,8 +19,7 @@ const Register = () => {
         name: values.name,
         email: values.email,
         password: values.password,
-        organization: values.organization,
-        role: values.role
+        organization: values.organization
       });
       message.success('Account created successfully!');
       navigate('/app');
@@ -61,13 +60,6 @@ const Register = () => {
 
             <Form.Item label="Organization / Department" name="organization" rules={[{ required: true, message: 'Please enter your organization' }]}>
               <Input size="large" placeholder="Department of Health" />
-            </Form.Item>
-
-            <Form.Item label="Role" name="role" initialValue="USER">
-              <Select size="large">
-                <Option value="USER">User</Option>
-                <Option value="ANALYST">Analyst</Option>
-              </Select>
             </Form.Item>
 
             <Row gutter={16}>

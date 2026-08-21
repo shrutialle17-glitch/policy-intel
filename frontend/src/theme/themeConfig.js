@@ -1,34 +1,44 @@
-export const themeConfig = {
+import { theme } from 'antd';
+
+export const getThemeConfig = (isDark) => ({
+  algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
   token: {
-    colorPrimary: '#1677FF', // Digital Blue
-    colorInfo: '#00A6A6',    // Teal (AI Accent)
-    colorSuccess: '#16A34A',
-    colorWarning: '#F59E0B',
-    colorError: '#DC2626',
-    colorTextBase: '#172033',
-    colorTextSecondary: '#64748B',
-    colorBgBase: '#F5F7FA',
-    colorBgContainer: '#FFFFFF',
-    colorBorder: '#E2E8F0',
+    colorPrimary: isDark ? '#2E6FA3' : '#123B5D', 
+    colorInfo: isDark ? '#4C9AFF' : '#1677FF',    
+    colorSuccess: isDark ? '#22C55E' : '#16A34A',
+    colorWarning: isDark ? '#FBBF24' : '#F59E0B',
+    colorError: isDark ? '#F87171' : '#DC2626',
+    colorTextBase: isDark ? '#E6EAF0' : '#172033',
+    colorTextSecondary: isDark ? '#93A1B5' : '#64748B',
+    colorBgBase: isDark ? '#0B1622' : '#F5F7FA',
+    colorBgContainer: isDark ? '#101E2E' : '#FFFFFF',
+    colorBgElevated: isDark ? '#16283C' : '#FFFFFF',
+    colorBorder: isDark ? '#24354A' : '#E2E8F0',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-    borderRadius: 6, // Clean enterprise look, not too rounded
+    borderRadius: 4,
     wireframe: false,
   },
   components: {
     Layout: {
-      siderBg: '#123B5D', // Deep Government Navy
-      headerBg: '#FFFFFF',
+      siderBg: isDark ? '#101E2E' : '#123B5D',
+      headerBg: isDark ? '#101E2E' : '#FFFFFF',
     },
     Menu: {
-      darkItemBg: '#123B5D',
-      darkItemSelectedBg: '#1677FF',
+      darkItemBg: isDark ? '#101E2E' : '#123B5D',
+      darkItemSelectedBg: isDark ? '#4C9AFF' : '#1677FF',
     },
     Button: {
       borderRadius: 4,
     },
     Card: {
       boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      borderRadius: 8,
+      borderRadius: 6,
+    },
+    Table: {
+      borderRadius: 4,
+    },
+    Tag: {
+      borderRadius: 12,
     }
   }
-};
+});

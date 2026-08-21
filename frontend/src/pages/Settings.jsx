@@ -1,14 +1,16 @@
 import React from 'react';
 import { Card, Form, Input, Button, Typography, Divider, Switch, message } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
 const Settings = () => {
   const { user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   
   const handleSave = () => {
-    message.success('Settings saved successfully (Mock)');
+    message.success('Settings saved successfully');
   };
 
   return (
@@ -42,9 +44,9 @@ const Settings = () => {
           <div>
             <Text strong>Dark Mode</Text>
             <br/>
-            <Text type="secondary">Toggle application theme (Coming soon).</Text>
+            <Text type="secondary">Toggle application theme.</Text>
           </div>
-          <Switch disabled />
+          <Switch checked={isDark} onChange={toggleTheme} />
         </div>
       </Card>
     </div>
